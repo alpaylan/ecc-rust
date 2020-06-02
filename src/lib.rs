@@ -1,7 +1,7 @@
 use core::ops::Add;
 use core::ops::Sub;
 use core::ops::Neg;
-
+use core::ops::Mul;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Point {
     curve: EllipticCurve,
@@ -13,26 +13,33 @@ impl Add for Point {
     type Output = Point;
 
     fn add(self, other: Self) -> Self::Output {
-        if self == other {
-            let m = (3 * self.x * self.x + self.curve.a) / (2 * self.y);
-            let r_x = m * m - self.x - other.x;
-            let r_y = -(self.y - m * (r_x - self.x));
-            
-            Point {
-                curve: self.curve,
-                x: r_x,
-                y: r_y,
-            }
-            
+        let point_zero = Point{curve: self.curve, x: 0, y: 0};
+        if self ==  point_zero {
+            return other;
+        } else if other == point_zero {
+            return self;
         } else {
-            let m = (self.y - other.y) / (self.x - other.x);
-            let r_x = m * m - self.x - other.x;
-            let r_y = -(self.y + m * (r_x - self.x));
-            
-            Point {
-                curve: self.curve,
-                x: r_x,
-                y: r_y,
+            if self == other {
+                let m = (3 * self.x * self.x + self.curve.a) / (2 * self.y);
+                let r_x = m * m - self.x - other.x;
+                let r_y = -(self.y - m * (r_x - self.x));
+                
+                Point {
+                    curve: self.curve,
+                    x: r_x,
+                    y: r_y,
+                }
+                
+            } else {
+                let m = (self.y - other.y) / (self.x - other.x);
+                let r_x = m * m - self.x - other.x;
+                let r_y = -(self.y + m * (r_x - self.x));
+                
+                Point {
+                    curve: self.curve,
+                    x: r_x,
+                    y: r_y,
+                }
             }
         }
     }
@@ -46,6 +53,43 @@ impl Sub for Point {
     }
 }
 
+impl Mul<i32> for Point {
+    type Output = Point;
+
+    fn mul(self, scalar: i32) -> Self::Output {
+        // TODO: Make this double_and_add
+        let mut i = 0;
+        let mut p = Point{
+                        curve:self.curve,
+                        x: 0, 
+                        y: 0
+                        };
+        while i < scalar {
+            p = p + self;
+            i += 1;
+        }
+        return p;
+    }
+}
+impl Mul<Point> for i32 {
+    type Output = Point;
+
+    fn mul(self, point: Point) -> Self::Output {
+        // TODO: Make this double_and_add
+        let mut i = 0;
+        let mut p = Point{
+                        curve:point.curve,
+                        x: 0, 
+                        y: 0
+                        };
+        println!("Scalar is {}", self);
+        while i < self {
+            p = p + point;
+            i += 1;
+        }
+        return p;
+    }
+}
 impl Neg for Point {
     type Output = Point;
 
@@ -104,7 +148,16 @@ mod tests {
 
         assert_eq!(p + q, Point { curve, x: 1, y: -2 },);
     }
+    #[test]
+    fn mul() {
+        let curve = EllipticCurve::new(-7, 10);
 
+        let p = curve.point(1, 2);
+        
+        assert_eq!(p, 1*p);
+        assert_eq!(p + p, 2*p);
+        assert_eq!(p + p, p*2);
+    }
     #[test]
     #[should_panic]
     fn invalid_point() {
@@ -112,3 +165,5 @@ mod tests {
         let _p = curve.point(0, 0);
     }
 }
+
+// Burda mısın
